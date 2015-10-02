@@ -14,7 +14,7 @@ class MAX7219_Dot_Matrix
   void sendToAll (const byte reg, const byte data);
 
   // registers
-  enum { 
+  enum {
        MAX7219_REG_NOOP        = 0x0,
       // codes 1 to 8 are digit positions 1 to 8
        MAX7219_REG_DECODEMODE  = 0x9,
@@ -27,19 +27,21 @@ class MAX7219_Dot_Matrix
 
   public:
     // constructor
-    MAX7219_Dot_Matrix (const byte chips, 
-             const byte load, 
-             const byte din = 0, 
+    MAX7219_Dot_Matrix (const byte chips,
+             const byte load,
+             const byte din = 0,
              const byte clock = 0)
-       : chips_ (chips), load_ (load), din_ (din), clock_ (clock), 
+       : chips_ (chips), load_ (load), din_ (din), clock_ (clock),
          bitBanged_ ((din | clock) != 0), bbSPI_ (NULL) { }
-    
+
     ~MAX7219_Dot_Matrix ();  // destructor
     void begin ();
     void end ();
 
     void sendChar (const byte pos, const byte data);
+    void send64pixels (const byte pos, const byte data [8]);
     void sendString (const char * s);
+    void sendSmooth (const char * s, const int pixel);
     void setIntensity (const byte amount);  // 0 to 15
 
   static const byte HYPHEN = 0b0000001;

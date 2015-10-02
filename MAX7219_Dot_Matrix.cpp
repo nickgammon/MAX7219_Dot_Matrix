@@ -1,31 +1,31 @@
 /*
- 
+
  MAX7219_Dot_Matrix class
  Author: Nick Gammon
  Date:   13 May 2015
- 
- 
+
+
  PERMISSION TO DISTRIBUTE
- 
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
- and associated documentation files (the "Software"), to deal in the Software without restriction, 
- including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, 
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+ and associated documentation files (the "Software"), to deal in the Software without restriction,
+ including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
  subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in 
+
+ The above copyright notice and this permission notice shall be included in
  all copies or substantial portions of the Software.
- 
- 
+
+
  LIMITATION OF LIABILITY
- 
- The software is provided "as is", without warranty of any kind, express or implied, 
- including but not limited to the warranties of merchantability, fitness for a particular 
- purpose and noninfringement. In no event shall the authors or copyright holders be liable 
- for any claim, damages or other liability, whether in an action of contract, 
- tort or otherwise, arising from, out of or in connection with the software 
- or the use or other dealings in the software. 
- 
+
+ The software is provided "as is", without warranty of any kind, express or implied,
+ including but not limited to the warranties of merchantability, fitness for a particular
+ purpose and noninfringement. In no event shall the authors or copyright holders be liable
+ for any claim, damages or other liability, whether in an action of contract,
+ tort or otherwise, arising from, out of or in connection with the software
+ or the use or other dealings in the software.
+
 */
 
 #include <SPI.h>
@@ -69,6 +69,10 @@ Usage:
 
     myDisplay.sendString ("Hello there");
 
+  Smooth scrolling:
+
+    myDisplay.sendSmooth.("Hello there", 10);  // start at pixel 10
+
   Set the intensity (from 0 to 15):
 
     myDisplay.setIntensity (8);
@@ -86,7 +90,7 @@ Usage:
 */
 
 
-  
+
 // destructor
 MAX7219_Dot_Matrix::~MAX7219_Dot_Matrix ()
   {
@@ -97,7 +101,7 @@ void MAX7219_Dot_Matrix::begin ()
   {
   pinMode (load_, OUTPUT);
   digitalWrite (load_, HIGH);
-  
+
   // prepare SPI
   if (bitBanged_)
     {
@@ -108,6 +112,7 @@ void MAX7219_Dot_Matrix::begin ()
   else
     {  // hardware SPI
     SPI.begin ();
+    SPI.setClockDivider (SPI_CLOCK_DIV8);
     }  // end of hardware SPI
 
   sendToAll (MAX7219_REG_SCANLIMIT, 7);     // show 8 digits
@@ -140,7 +145,7 @@ void MAX7219_Dot_Matrix::setIntensity (const byte amount)
 
 // send one byte to MAX7219
 void MAX7219_Dot_Matrix::sendByte (const byte reg, const byte data)
-  {    
+  {
   if (bitBanged_)
     {
     if (bbSPI_ != NULL)
@@ -149,7 +154,7 @@ void MAX7219_Dot_Matrix::sendByte (const byte reg, const byte data)
       bbSPI_->transfer (data);
       }
     }
-  else 
+  else
     {
     SPI.transfer (reg);
     SPI.transfer (data);
@@ -157,52 +162,97 @@ void MAX7219_Dot_Matrix::sendByte (const byte reg, const byte data)
   }  // end of sendByte
 
 void MAX7219_Dot_Matrix::sendToAll (const byte reg, const byte data)
-  {    
+  {
   digitalWrite (load_, LOW);
   for (byte chip = 0; chip < chips_; chip++)
     sendByte (reg, data);
-  digitalWrite (load_, HIGH); 
+  digitalWrite (load_, HIGH);
   }  // end of sendToAll
 
-// send one character (data) to position (pos)
-void MAX7219_Dot_Matrix::sendChar (const byte pos, const byte data)
+void MAX7219_Dot_Matrix::sendChar (const byte chip, const byte data)
   {
-
   // get this character from PROGMEM
-  byte font [8];
+  byte pixels [8];
   for (byte i = 0; i < 8; i++)
-     font [i] = pgm_read_byte (&MAX7219_Dot_Matrix_font [data] [i]);
+     pixels [i] = pgm_read_byte (&MAX7219_Dot_Matrix_font [data] [i]);
 
+  send64pixels (chip, pixels);
+  }  // end of sendChar
+
+// send one character (data) to position (chip)
+void MAX7219_Dot_Matrix::send64pixels (const byte chip, const byte pixels [8])
+  {
   for (byte col = 0; col < 8; col++)
     {
     // start sending
     digitalWrite (load_, LOW);
-    // send extra NOPs to push the data out to extra displays
-    for (byte i = 0; i < pos; i++)
+    // send extra NOPs to push the pixels out to extra displays
+    for (byte i = 0; i < chip; i++)
       sendByte (MAX7219_REG_NOOP, MAX7219_REG_NOOP);
-    // rotate font 90 degrees
+    // rotate pixels 90 degrees
     byte b = 0;
     for (byte i = 0; i < 8; i++)
-      b |= bitRead (font [i], col) << (7 - i);
+      b |= bitRead (pixels [i], col) << (7 - i);
     sendByte (col + 1, b);
     // end with enough NOPs so later chips don't update
-    for (int i = 0; i < chips_ - pos - 1; i++)
+    for (int i = 0; i < chips_ - chip - 1; i++)
       sendByte (MAX7219_REG_NOOP, MAX7219_REG_NOOP);
     // all done!
-    digitalWrite (load_, HIGH); 
+    digitalWrite (load_, HIGH);
     }   // end of for each column
   }  // end of sendChar
 
 // write an entire null-terminated string to the LEDs
 void MAX7219_Dot_Matrix::sendString (const char * s)
 {
-  byte pos;
-  
-  for (pos = 0; pos < chips_ && *s; pos++)
-    sendChar (pos, *s++);  
+  byte chip;
+
+  for (chip = 0; chip < chips_ && *s; chip++)
+    sendChar (chip, *s++);
 
  // space out rest
-  while (pos < (chips_))
-    sendChar (pos++, ' ');
+  while (chip < (chips_))
+    sendChar (chip++, ' ');
 
 }  // end of sendString
+
+void MAX7219_Dot_Matrix::sendSmooth (const char * s, const int pixel)
+  {
+  int len = strlen (s);
+  byte thisChip [3 * 8];  // pixels for current chip with allowance for one each side
+  int firstByte = pixel / 8;
+  int offset = pixel - (firstByte * 8);
+
+  byte chip;
+
+  for (chip = 0; chip < chips_; chip++)
+    {
+    memset (thisChip, 0, sizeof thisChip);
+
+    // get pixels to left of current character in case "pixel" is negative
+    if (offset < 0)
+      {
+      if (firstByte + chip - 1 >= 0 && firstByte + chip - 1 < len)
+        for (byte i = 0; i < 8; i++)
+           thisChip [i] = pgm_read_byte (&MAX7219_Dot_Matrix_font [s [firstByte  + chip - 1]] [i]);
+      }  // negative offset
+
+    // get the current character
+    if (firstByte + chip >= 0 && firstByte + chip < len)
+      for (byte i = 0; i < 8; i++)
+         thisChip [i + 8] = pgm_read_byte (&MAX7219_Dot_Matrix_font [s [firstByte + chip]] [i]);
+
+    // get pixels to right of current character in case "pixel" is positive
+    if (offset > 0)
+      {
+      if (firstByte + chip + 1 >= 0 && firstByte + chip + 1 < len)
+        for (byte i = 0; i < 8; i++)
+           thisChip [i + 16] = pgm_read_byte (&MAX7219_Dot_Matrix_font [s [firstByte + chip + 1]] [i]);
+      }  // positive offset
+
+    // send the appropriate 8 pixels (offset will be from -7 to +7)
+    send64pixels (chip, &thisChip [8 + offset]);
+
+    } // for each chip
+
+  } // end of MAX7219_Dot_Matrix::sendSmooth

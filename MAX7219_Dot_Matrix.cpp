@@ -112,15 +112,20 @@ void MAX7219_Dot_Matrix::begin ()
   else
     {  // hardware SPI
     SPI.begin ();
-    SPI.setClockDivider (SPI_CLOCK_DIV8);
+//    SPI.setClockDivider (SPI_CLOCK_DIV8);
     }  // end of hardware SPI
 
-  sendToAll (MAX7219_REG_SCANLIMIT, 7);     // show 8 digits
-  sendToAll (MAX7219_REG_DECODEMODE, 0);    // use bit patterns
-  sendToAll (MAX7219_REG_DISPLAYTEST, 0);   // no display test
-  sendToAll (MAX7219_REG_INTENSITY, 15);    // character intensity: range: 0 to 15
-  sendString ("");                          // clear display
-  sendToAll (MAX7219_REG_SHUTDOWN, 1);      // not in shutdown mode (ie. start it up)
+  // repeatedly configure the chips in case they start up in a mode which
+  // draws a lot of current
+  for (byte chip = 0; chip < chips_; chip++)
+    {
+    sendToAll (MAX7219_REG_SCANLIMIT, 7);     // show 8 digits
+    sendToAll (MAX7219_REG_DECODEMODE, 0);    // use bit patterns
+    sendToAll (MAX7219_REG_DISPLAYTEST, 0);   // no display test
+    sendToAll (MAX7219_REG_INTENSITY, 15);    // character intensity: range: 0 to 15
+    sendString ("");                          // clear display
+    sendToAll (MAX7219_REG_SHUTDOWN, 1);      // not in shutdown mode (ie. start it up)
+    }
   } // end of MAX7219_Dot_Matrix::begin
 
 void MAX7219_Dot_Matrix::end ()

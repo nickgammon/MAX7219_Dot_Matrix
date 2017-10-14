@@ -1,0 +1,30 @@
+#######################################
+# Syntax Coloring Map For MAX7219_Dot_Matrix
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+MAX7219_Dot_Matrix	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+MAX7219_REG_SCANLIMIT	KEYWORD2
+MAX7219_REG_DECODEMODE	KEYWORD2
+MAX7219_REG_DISPLAYTEST	KEYWORD2
+MAX7219_REG_INTENSITY	KEYWORD2
+MAX7219_REG_SHUTDOWN	KEYWORD2
+
+
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+

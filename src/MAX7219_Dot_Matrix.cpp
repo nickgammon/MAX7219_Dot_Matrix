@@ -239,20 +239,20 @@ void MAX7219_Dot_Matrix::sendSmooth (const char * s, const int pixel)
       {
       if (firstByte + chip - 1 >= 0 && firstByte + chip - 1 < len)
         for (byte i = 0; i < 8; i++)
-           thisChip [i] = pgm_read_byte (&MAX7219_Dot_Matrix_font [s [firstByte  + chip - 1]] [i]);
+           thisChip [i] = pgm_read_byte (&MAX7219_Dot_Matrix_font [((const byte *) s) [firstByte  + chip - 1]] [i]);
       }  // negative offset
 
     // get the current character
     if (firstByte + chip >= 0 && firstByte + chip < len)
       for (byte i = 0; i < 8; i++)
-         thisChip [i + 8] = pgm_read_byte (&MAX7219_Dot_Matrix_font [s [firstByte + chip]] [i]);
+         thisChip [i + 8] = pgm_read_byte (&MAX7219_Dot_Matrix_font [((const byte *) s) [firstByte + chip]] [i]);
 
     // get pixels to right of current character in case "pixel" is positive
     if (offset > 0)
       {
       if (firstByte + chip + 1 >= 0 && firstByte + chip + 1 < len)
         for (byte i = 0; i < 8; i++)
-           thisChip [i + 16] = pgm_read_byte (&MAX7219_Dot_Matrix_font [s [firstByte + chip + 1]] [i]);
+           thisChip [i + 16] = pgm_read_byte (&MAX7219_Dot_Matrix_font [((const byte *) s) [firstByte + chip + 1]] [i]);
       }  // positive offset
 
     // send the appropriate 8 pixels (offset will be from -7 to +7)
